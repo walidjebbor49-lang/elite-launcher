@@ -14,43 +14,49 @@ namespace ELITE.Launcher
     public partial class MainWindow : Window
     {
         private CMLauncher? _launcher;
-        private MinecraftPath? _path;
+        private MinecraftPath? _customPath;
         private bool _isSpanish = true;
 
         // IP fija del servidor para el evento
-        private const string EventServerIp = "pristine-bridge.play.hosting";
+        const string EventServerIp = "pristine-bridge.play.hosting";
 
         public MainWindow()
         {
             InitializeComponent();
-            InitMinecraftEngine();
+            InitCustomMinecraftEngine();
         }
 
-        private void InitMinecraftEngine()
+        private void InitCustomMinecraftEngine()
         {
-            _path = new MinecraftPath();
-            _launcher = new CMLauncher(_path);
+            // Creamos una carpeta totalmente independiente llamada "ELITE-Event" 
+            // al lado de la carpeta .minecraft tradicional (en AppData\Roaming)
+            string roamingPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string customGameDir = Path.Combine(roamingPath, "ELITE-Event");
+
+            Directory.CreateDirectory(customGameDir);
+
+            // Configuramos CmlLib para que trabaje exclusivamente en esta carpeta aislada
+            _customPath = new MinecraftPath(customGameDir);
+            _launcher = new CMLauncher(_customPath);
         }
 
         private async void BtnLaunch_Click(object sender, RoutedEventArgs e)
         {
-            if (_launcher == null || _path == null) return;
+            if (_launcher == null || _customPath == null) return;
 
-            // Versión exacta de Forge 1.20.1 que necesitamos
-            string forgeVersionName = "1.20.1-forge-47.2.0";
-            string modsZipName = "mods-1.20.zip";
+            string targetVersionName = "1.20.1-forge-47.2.0";
 
             BtnLaunch.IsEnabled = false;
-            TxtStatus.Text = _isSpanish ? "  Verificando entorno de juego..." : "  Checking game environment...";
+            TxtStatus.Text = _isSpanish ? "  Verificando archivos del evento..." : "  Checking event files...";
 
             try
             {
-                // 1. Descargar mods y texturas primero
-                TxtStatus.Text = _isSpanish ? "  Descargando mods y texture pack..." : "  Downloading mods and texture pack...";
-                await DownloadAndExtractModsAsync(modsZipName);
+                // 1. Descarga y descomprime la instancia en la carpeta aislada ELITE-Event
+                TxtStatus.Text = _isSpanish ? "  Descargando instancia limpia..." : "  Downloading clean instance...";
+                await DownloadAndExtractInstanceAsync();
 
-                // 2. Iniciar Minecraft directamente con la versión de Forge 1.20.1
-                TxtStatus.Text = _isSpanish ? "  Iniciando Minecraft Forge 1.20.1..." : "  Starting Minecraft Forge 1.20.1...";
+                // 2. Iniciar Minecraft con la versión aislada e IP del evento inyectada
+                TxtStatus.Text = _isSpanish ? "  Iniciando Minecraft..." : "  Starting Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
 
                 var launchOptions = new MLaunchOption
@@ -60,7 +66,7 @@ namespace ELITE.Launcher
                     ServerIp = EventServerIp // Conecta automáticamente al servidor del evento
                 };
 
-                var process = await _launcher.CreateProcessAsync(forgeVersionName, launchOptions);
+                var process = await _launcher.CreateProcessAsync(targetVersionName, launchOptions);
 
                 process.Start();
                 TxtStatus.Text = _isSpanish ? "  ¡Juego iniciado!" : "  Game started!";
@@ -74,46 +80,38 @@ namespace ELITE.Launcher
             }
         }
 
-        private async Task DownloadAndExtractModsAsync(string modsZipName)
+        private async Task DownloadAndExtractInstanceAsync()
         {
-            if (_path == null) return;
+            if (_customPath == null) return;
 
-            string modsDir = Path.Combine(_path.BasePath, "mods");
-            string resourcepacksDir = Path.Combine(_path.BasePath, "resourcepacks");
-
-            Directory.CreateDirectory(modsDir);
-            Directory.CreateDirectory(resourcepacksDir);
-
-            string tempModsZip = Path.Combine(_path.BasePath, modsZipName);
-            string panchoTexturePackPath = Path.Combine(resourcepacksDir, "pancho.zip");
+            string tempZipPath = Path.Combine(_customPath.BasePath, "modpack-temp.zip");
 
             string githubUser = "walidjebbor49-lang";
             string repoName = "elite-launcher";
-            string releaseTag = "v1.0.0";
+            string releaseTag = "v1.0.1"; // Versión del modpack en GitHub Releases
+            string zipFileName = "modpack.zip"; // Tu archivo zip con la instancia
 
-            string modsUrl = $"https://github.com/{githubUser}/{repoName}/releases/download/{releaseTag}/{modsZipName}";
-            string panchoUrl = $"https://github.com/{githubUser}/{repoName}/releases/download/{releaseTag}/pancho.zip";
+            string downloadUrl = $"https://github.com/{githubUser}/{repoName}/releases/download/{releaseTag}/{zipFileName}";
 
             using var client = new HttpClient();
 
             try
             {
-                byte[] zipBytes = await client.GetByteArrayAsync(modsUrl);
-                await File.WriteAllBytesAsync(tempModsZip, zipBytes);
-                ZipFile.ExtractToDirectory(tempModsZip, modsDir, overwriteFiles: true);
+                // Descarga el modpack completo
+                byte[] zipBytes = await client.GetByteArrayAsync(downloadUrl);
+                await File.WriteAllBytesAsync(tempZipPath, zipBytes);
 
-                if (File.Exists(tempModsZip)) File.Delete(tempModsZip);
-            }
-            catch { }
+                // Descomprime exclusivamente dentro de la carpeta ELITE-Event
+                ZipFile.ExtractToDirectory(tempZipPath, _customPath.BasePath, overwriteFiles: true);
 
-            if (!File.Exists(panchoTexturePackPath))
-            {
-                try
+                if (File.Exists(tempZipPath))
                 {
-                    byte[] panchoBytes = await client.GetByteArrayAsync(panchoUrl);
-                    await File.WriteAllBytesAsync(panchoTexturePackPath, panchoBytes);
+                    File.Delete(tempZipPath);
                 }
-                catch { }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"No se pudo descargar el modpack: {ex.Message}");
             }
         }
 
@@ -136,8 +134,8 @@ namespace ELITE.Launcher
         {
             try
             {
-                if (_path == null) return;
-                string optionsFile = Path.Combine(_path.BasePath, "options.txt");
+                if (_customPath == null) return;
+                string optionsFile = Path.Combine(_customPath.BasePath, "options.txt");
                 string optimizedConfig = "graphicsMode:fabulous\nrenderDistance:8\nmaxFps:140\nviewDistance:8\nclouds:false\nsmoothLighting:0\n";
                 File.WriteAllText(optionsFile, optimizedConfig);
                 MessageBox.Show(_isSpanish ? "¡Optimización aplicada con éxito!" : "Optimization successfully applied!", "ELITE", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -149,8 +147,8 @@ namespace ELITE.Launcher
         {
             try
             {
-                if (_path == null) return;
-                string modsDir = Path.Combine(_path.BasePath, "mods");
+                if (_customPath == null) return;
+                string modsDir = Path.Combine(_customPath.BasePath, "mods");
                 Directory.CreateDirectory(modsDir);
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() { FileName = modsDir, UseShellExecute = true, Verb = "open" });
             }
