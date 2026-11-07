@@ -9,4 +9,9 @@
     <RootNamespace>ELITE.Launcher</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+
+  <!-- Librería para gestionar y descargar Minecraft -->
+  <ItemGroup>
+    <PackageReference Include="CmlLib.Core" Version="3.3.7" />
+  </ItemGroup>
 </Project>
