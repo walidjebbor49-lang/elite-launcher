@@ -28,14 +28,11 @@ namespace ELITE.Launcher
 
         private void InitCustomMinecraftEngine()
         {
-            // Creamos una carpeta totalmente independiente llamada "ELITE-Event" 
-            // al lado de la carpeta .minecraft tradicional (en AppData\Roaming)
             string roamingPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string customGameDir = Path.Combine(roamingPath, "ELITE-Event");
 
             Directory.CreateDirectory(customGameDir);
 
-            // Configuramos CmlLib para que trabaje exclusivamente en esta carpeta aislada
             _customPath = new MinecraftPath(customGameDir);
             _launcher = new CMLauncher(_customPath);
         }
@@ -44,18 +41,52 @@ namespace ELITE.Launcher
         {
             if (_launcher == null || _customPath == null) return;
 
-            string targetVersionName = "1.20.1-forge-47.2.0";
-
             BtnLaunch.IsEnabled = false;
             TxtStatus.Text = _isSpanish ? "  Verificando archivos del evento..." : "  Checking event files...";
 
             try
             {
-                // 1. Descarga y descomprime la instancia en la carpeta aislada ELITE-Event
-                TxtStatus.Text = _isSpanish ? "  Descargando instancia limpia..." : "  Downloading clean instance...";
+                // 1. Descarga y descomprime la instancia
+                TxtStatus.Text = _isSpanish ? "  Descargando instancia..." : "  Downloading instance...";
                 await DownloadAndExtractInstanceAsync();
 
-                // 2. Iniciar Minecraft con la versión aislada e IP del evento inyectada
+                // 2. Búsqueda inteligente de la versión instalada en la carpeta (evita el error de nombre)
+                TxtStatus.Text = _isSpanish ? "  Buscando versión de Forge..." : "  Looking for Forge version...";
+                
+                // Buscamos dentro de la carpeta versions de ELITE-Event o subcarpetas
+                string targetVersionName = "1.20.1-forge-47.2.0"; // Nombre por defecto
+                string versionsDir = Path.Combine(_customPath.BasePath, "versions");
+                
+                if (Directory.Exists(versionsDir))
+                {
+                    var versionFolders = Directory.GetDirectories(versionsDir);
+                    if (versionFolders.Length > 0)
+                    {
+                        targetVersionName = Path.GetFileName(versionFolders[0]);
+                    }
+                }
+                else
+                {
+                    // Si el zip se extrajo dentro de una subcarpeta como 'forge-1-20-1', movemos los archivos a la raíz
+                    string subFolder = Path.Combine(_customPath.BasePath, "forge-1-20-1");
+                    if (Directory.Exists(subFolder))
+                    {
+                        MoveDirectoryContents(subFolder, _customPath.BasePath);
+                        Directory.Delete(subFolder, true);
+                        
+                        versionsDir = Path.Combine(_customPath.BasePath, "versions");
+                        if (Directory.Exists(versionsDir))
+                        {
+                            var versionFolders = Directory.GetDirectories(versionsDir);
+                            if (versionFolders.Length > 0)
+                            {
+                                targetVersionName = Path.GetFileName(versionFolders[0]);
+                            }
+                        }
+                    }
+                }
+
+                // 3. Iniciar Minecraft con la versión detectada y la IP del evento
                 TxtStatus.Text = _isSpanish ? "  Iniciando Minecraft..." : "  Starting Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
 
@@ -88,8 +119,8 @@ namespace ELITE.Launcher
 
             string githubUser = "walidjebbor49-lang";
             string repoName = "elite-launcher";
-            string releaseTag = "v1.0.1"; // Versión del modpack en GitHub Releases
-            string zipFileName = "modpack.zip"; // Tu archivo zip con la instancia
+            string releaseTag = "v1.0.1"; 
+            string zipFileName = "modpack.zip"; 
 
             string downloadUrl = $"https://github.com/{githubUser}/{repoName}/releases/download/{releaseTag}/{zipFileName}";
 
@@ -97,11 +128,9 @@ namespace ELITE.Launcher
 
             try
             {
-                // Descarga el modpack completo
                 byte[] zipBytes = await client.GetByteArrayAsync(downloadUrl);
                 await File.WriteAllBytesAsync(tempZipPath, zipBytes);
 
-                // Descomprime exclusivamente dentro de la carpeta ELITE-Event
                 ZipFile.ExtractToDirectory(tempZipPath, _customPath.BasePath, overwriteFiles: true);
 
                 if (File.Exists(tempZipPath))
@@ -112,6 +141,19 @@ namespace ELITE.Launcher
             catch (Exception ex)
             {
                 throw new Exception($"No se pudo descargar el modpack: {ex.Message}");
+            }
+        }
+
+        private void MoveDirectoryContents(string sourceDir, string targetDir)
+        {
+            foreach (string dirPath in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                Directory.CreateDirectory(dirPath.Replace(sourceDir, targetDir));
+            }
+
+            foreach (string newPath in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
+            {
+                File.Copy(newPath, newPath.Replace(sourceDir, targetDir), true);
             }
         }
 
@@ -170,7 +212,6 @@ namespace ELITE.Launcher
             activeBtn.Foreground = Brushes.White;
         }
 
-        // Cambio de Tema Oscuro / Claro
         private void CbTheme_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (CbTheme.SelectedItem is ComboBoxItem item)
@@ -187,7 +228,6 @@ namespace ELITE.Launcher
             }
         }
 
-        // Cambio de Idioma (Español / Inglés)
         private void CbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (CbLanguage.SelectedItem is ComboBoxItem item)
