@@ -37,39 +37,56 @@ namespace ELITE.Launcher
         {
             if (_launcher == null || _path == null) return;
 
-            string versionId = "1.20.1-forge-47.2.0";
+            string targetVersionName = "1.20.1-forge-47.2.0";
             string modsZipName = "mods-1.20.zip";
 
             BtnLaunch.IsEnabled = false;
-            TxtStatus.Text = _isSpanish ? " Verificando archivos de Minecraft..." : " Checking Minecraft files...";
+            TxtStatus.Text = _isSpanish ? "  Buscando versión de Forge..." : "  Looking for Forge version...";
 
             try
             {
-                // Descarga mods y texturas primero
-                TxtStatus.Text = _isSpanish ? " Descargando mods y texture pack..." : " Downloading mods and texture pack...";
+                // 1. Descargar mods y texturas primero
+                TxtStatus.Text = _isSpanish ? "  Descargando mods y texture pack..." : "  Downloading mods and texture pack...";
                 await DownloadAndExtractModsAsync(modsZipName);
 
-                TxtStatus.Text = _isSpanish ? " Iniciando Minecraft..." : " Starting Minecraft...";
+                // 2. Búsqueda inteligente de la versión (como SKLauncher)
+                TxtStatus.Text = _isSpanish ? "  Verificando perfil de juego..." : "  Verifying game profile...";
+                var versions = await _launcher.GetVersionsAsync();
+                MServicNet.MVersion? chosenVersion = null;
+
+                foreach (var v in versions)
+                {
+                    if (v.Name.Contains("1.20.1") && v.Name.Contains("forge"))
+                    {
+                        chosenVersion = v;
+                        break;
+                    }
+                }
+
+                // Si no encuentra el Forge exacto en la lista local, usa el nombre por defecto para forzar el arranque
+                string finalVersionToRun = chosenVersion != null ? chosenVersion.Name : targetVersionName;
+
+                TxtStatus.Text = _isSpanish ? "  Iniciando Minecraft..." : "  Starting Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
 
                 var launchOptions = new MLaunchOption
                 {
                     Session = session,
                     MaximumRamMb = 3048,
-                    ServerIp = EventServerIp // Conecta directo a la IP del evento
+                    ServerIp = EventServerIp // Conecta automáticamente al servidor del evento
                 };
 
-                var process = await _launcher.CreateProcessAsync(versionId, launchOptions);
+                var process = await _launcher.CreateProcessAsync(finalVersionToRun, launchOptions);
 
                 process.Start();
-                TxtStatus.Text = _isSpanish ? " ¡Juego iniciado!" : " Game started!";
+                TxtStatus.Text = _isSpanish ? "  ¡Juego iniciado!" : "  Game started!";
                 this.Hide();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 BtnLaunch.IsEnabled = true;
-                TxtStatus.Text = _isSpanish ? " Error al iniciar" : " Launch error";
+                TxtStatus.Text = _isSpanish ? "  Error al iniciar" : "  Launch error";
             }
         }
 
@@ -212,16 +229,16 @@ namespace ELITE.Launcher
         private void SetLanguageSpanish()
         {
             LblMenuHeader.Text = "MENÚ PRINCIPAL";
-            BtnNavHome.Content = " Inicio";
-            BtnNavOpt.Content = " Optimización";
-            BtnNavMods.Content = " Mods";
-            BtnNavSettings.Content = " Ajustes";
+            BtnNavHome.Content = "  Inicio";
+            BtnNavOpt.Content = "  Optimización";
+            BtnNavMods.Content = "  Mods";
+            BtnNavSettings.Content = "  Ajustes";
             LblWelcomeTag.Text = "BIENVENIDO A ELITE";
             LblWelcomeMain.Text = "Tu Minecraft. A tu manera.";
             LblWelcomeDesc.Text = "Selecciona tu versión de Forge preferida y entra al servidor.";
             LblSelectVersion.Text = "Selecciona la Versión de Forge";
             BtnLaunch.Content = "JUGAR ►";
-            TxtStatus.Text = " Sistema listo";
+            TxtStatus.Text = "  Sistema listo";
             LblSettingsTitle.Text = "CONFIGURACIÓN";
             LblSettingsHeader.Text = "Ajustes del Launcher";
             LblThemeLabel.Text = "Tema Visual";
@@ -231,16 +248,16 @@ namespace ELITE.Launcher
         private void SetLanguageEnglish()
         {
             LblMenuHeader.Text = "MAIN MENU";
-            BtnNavHome.Content = " Home";
-            BtnNavOpt.Content = " Optimization";
-            BtnNavMods.Content = " Mods";
-            BtnNavSettings.Content = " Settings";
+            BtnNavHome.Content = "  Home";
+            BtnNavOpt.Content = "  Optimization";
+            BtnNavMods.Content = "  Mods";
+            BtnNavSettings.Content = "  Settings";
             LblWelcomeTag.Text = "WELCOME TO ELITE";
             LblWelcomeMain.Text = "Your Minecraft. Your way.";
             LblWelcomeDesc.Text = "Select your preferred Forge version and join the server.";
             LblSelectVersion.Text = "Select Forge Version";
             BtnLaunch.Content = "PLAY ►";
-            TxtStatus.Text = " System ready";
+            TxtStatus.Text = "  System ready";
             LblSettingsTitle.Text = "SETTINGS";
             LblSettingsHeader.Text = "Launcher Settings";
             LblThemeLabel.Text = "Visual Theme";
