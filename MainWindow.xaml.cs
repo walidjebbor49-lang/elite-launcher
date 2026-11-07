@@ -7,7 +7,7 @@ namespace ELITE.Launcher
 {
     public partial class MainWindow : Window
     {
-        private CMLauncher _launcher;
+        private CMLauncher? _launcher;
 
         public MainWindow()
         {
@@ -17,21 +17,21 @@ namespace ELITE.Launcher
 
         private void InitMinecraftEngine()
         {
-            // Inicializa la ruta por defecto del juego (%appdata%/.minecraft)
             var path = new MinecraftPath();
             _launcher = new CMLauncher(path);
         }
 
         private async void BtnLaunch_Click(object sender, RoutedEventArgs e)
         {
+            if (_launcher == null) return;
+
             BtnLaunch.IsEnabled = false;
             TxtStatus.Text = "  Iniciando...";
 
             try
             {
-                // Obtiene la lista de versiones y selecciona la primera disponible (o una versión estable)
                 var versions = await _launcher.GetAllVersionsAsync();
-                string targetVersion = null;
+                string? targetVersion = null;
 
                 foreach (var item in versions)
                 {
@@ -43,7 +43,9 @@ namespace ELITE.Launcher
                 }
 
                 if (targetVersion == null && versions.Count > 0)
+                {
                     targetVersion = versions[0].Name;
+                }
 
                 if (targetVersion == null)
                 {
@@ -55,22 +57,17 @@ namespace ELITE.Launcher
 
                 TxtStatus.Text = $"  Cargando {targetVersion}...";
 
-                // Sesión en modo sin conexión / offline
                 var session = MSession.GetOfflineSession("ElitePlayer");
 
-                // Configurar el proceso de inicio del juego
                 var process = await _launcher.CreateProcessAsync(targetVersion, new MLaunchOption
                 {
                     Session = session,
-                    MaximumRamMb = 2048 // Memoria RAM asignada al juego
+                    MaximumRamMb = 2048
                 });
 
-                // Lanzar Minecraft
                 process.Start();
 
                 TxtStatus.Text = "  ¡Juego iniciado!";
-                
-                // Ocultar el launcher para que pase a segundo plano mientras juegas
                 this.Hide();
             }
             catch (Exception ex)
@@ -86,6 +83,6 @@ namespace ELITE.Launcher
         private void Versions_Click(object sender, RoutedEventArgs e) => ShowStage("Versiones");
         private void Optimization_Click(object sender, RoutedEventArgs e) => ShowStage("Optimización");
         private void Mods_Click(object sender, RoutedEventArgs e) => ShowStage("Mods");
-        private void Settings_Click(object sender, RoutedEventArgs e) => ShowStage("Ajustes");
+        private void Settings_Click(object sender, RoutedEventArgs e) => ShowStage("Settings");
     }
 }
