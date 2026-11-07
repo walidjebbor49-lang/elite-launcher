@@ -26,14 +26,14 @@
                 <StackPanel DockPanel.Dock="Top">
                     <StackPanel Orientation="Horizontal" Margin="8,12,0,34">
                         <Border Width="38" Height="38" CornerRadius="11" Background="#8065FF"><TextBlock Text="E" FontSize="25" FontWeight="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                        <StackPanel Margin="11,0,0,0" VerticalAlignment="Center"><TextBlock Text="ELITE" FontSize="20" FontWeight="ExtraBold"/><TextBlock Text="MINECRAFT LAUNCHER" FontSize="8" Foreground="#9299AE" CharacterSpacing="120"/></StackPanel>
+                        <StackPanel Margin="11,0,0,0" VerticalAlignment="Center"><TextBlock Text="ELITE" FontSize="20" FontWeight="ExtraBold"/><TextBlock Text="MINECRAFT LAUNCHER" FontSize="8" Foreground="#9299AE"/></StackPanel>
                     </StackPanel>
                     <TextBlock Text="MENÚ PRINCIPAL" Foreground="#626B82" FontSize="10" FontWeight="Bold" Margin="12,0,0,10"/>
-                    <Button Style="{StaticResource NavButton}" Content="⌂    Inicio" Background="#20263A" Foreground="White"/>
-                    <Button Style="{StaticResource NavButton}" Content="▤    Versiones" Click="Versions_Click"/>
-                    <Button Style="{StaticResource NavButton}" Content="✧    Optimización" Click="Optimization_Click"/>
-                    <Button Style="{StaticResource NavButton}" Content="▦    Mods" Click="Mods_Click"/>
-                    <Button Style="{StaticResource NavButton}" Content="⚙    Ajustes" Click="Settings_Click"/>
+                    <Button Style="{StaticResource NavButton}" Content="⌂     Inicio" Background="#20263A" Foreground="White"/>
+                    <Button Style="{StaticResource NavButton}" Content="▤     Versiones" Click="Versions_Click"/>
+                    <Button Style="{StaticResource NavButton}" Content="✧     Optimización" Click="Optimization_Click"/>
+                    <Button Style="{StaticResource NavButton}" Content="▦     Mods" Click="Mods_Click"/>
+                    <Button Style="{StaticResource NavButton}" Content="⚙     Ajustes" Click="Settings_Click"/>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Bottom" Margin="8,0,0,8">
                     <TextBlock Text="CUENTA" Foreground="#626B82" FontSize="10" FontWeight="Bold" Margin="4,0,0,12"/>
