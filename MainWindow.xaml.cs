@@ -56,9 +56,10 @@ namespace ELITE.Launcher
 
                 foreach (var v in versions)
                 {
-                    if (v.Name.Contains("1.20.1") && v.Name.Contains("forge"))
+                    string versionName = v.ToString() ?? "";
+                    if (versionName.Contains("1.20.1") && versionName.Contains("forge"))
                     {
-                        finalVersionToRun = v.Name;
+                        finalVersionToRun = versionName;
                         break;
                     }
                 }
