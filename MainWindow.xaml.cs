@@ -36,19 +36,41 @@ namespace ELITE.Launcher
         {
             if (_launcher == null || _path == null) return;
 
-            string targetVersionName = "1.20.1-forge-47.2.0";
             string modsZipName = "mods-1.20.zip";
 
             BtnLaunch.IsEnabled = false;
-            TxtStatus.Text = _isSpanish ? "  Preparando lanzamiento..." : "  Preparing launch...";
+            TxtStatus.Text = _isSpanish ? "  Verificando entorno de juego..." : "  Checking game environment...";
 
             try
             {
-                // 1. Descarga mods y texturas primero
+                // 1. Descargar mods y texturas primero
                 TxtStatus.Text = _isSpanish ? "  Descargando mods y texture pack..." : "  Downloading mods and texture pack...";
                 await DownloadAndExtractModsAsync(modsZipName);
 
-                // 2. Iniciar el juego directamente con la versión de Forge
+                // 2. Comprobación inteligente de versiones locales
+                TxtStatus.Text = _isSpanish ? "  Verificando versión 1.20.1..." : "  Verifying 1.20.1 version...";
+                var installedVersions = _path.GetVersions();
+                string targetVersion = "";
+
+                foreach (var v in installedVersions)
+                {
+                    if (v.Name.Contains("1.20.1"))
+                    {
+                        targetVersion = v.Name;
+                        break;
+                    }
+                }
+
+                // Si no está instalada, la descargamos automáticamente de forma limpia
+                if (string.IsNullOrEmpty(targetVersion))
+                {
+                    TxtStatus.Text = _isSpanish ? "  Descargando Minecraft 1.20.1 base..." : "  Downloading base Minecraft 1.20.1...";
+                    var vanillaVersion = await _launcher.GetVersionAsync("1.20.1");
+                    await _launcher.CheckAndDownloadAsync(vanillaVersion);
+                    targetVersion = "1.20.1";
+                }
+
+                // 3. Iniciar el juego
                 TxtStatus.Text = _isSpanish ? "  Iniciando Minecraft..." : "  Starting Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
 
@@ -59,7 +81,7 @@ namespace ELITE.Launcher
                     ServerIp = EventServerIp // Conecta automáticamente al servidor del evento
                 };
 
-                var process = await _launcher.CreateProcessAsync(targetVersionName, launchOptions);
+                var process = await _launcher.CreateProcessAsync(targetVersion, launchOptions);
 
                 process.Start();
                 TxtStatus.Text = _isSpanish ? "  ¡Juego iniciado!" : "  Game started!";
@@ -67,7 +89,7 @@ namespace ELITE.Launcher
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error al iniciar: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 BtnLaunch.IsEnabled = true;
                 TxtStatus.Text = _isSpanish ? "  Error al iniciar" : "  Launch error";
             }
