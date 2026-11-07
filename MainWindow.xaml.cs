@@ -42,9 +42,14 @@ namespace ELITE.Launcher
                     }
                 }
 
-                if (targetVersion == null && versions.Count > 0)
+                // Corrección segura para evitar el error de compilación en la comprobación
+                if (targetVersion == null)
                 {
-                    targetVersion = versions[0].Name;
+                    foreach (var item in versions)
+                    {
+                        targetVersion = item.Name;
+                        break;
+                    }
                 }
 
                 if (targetVersion == null)
