@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using CmlLib.Core;
 using CmlLib.Core.Auth;
+using CmlLib.Core.Installer.Forge; // Necesario para instalar Forge automáticamente
 
 namespace ELITE.Launcher
 {
@@ -33,21 +34,36 @@ namespace ELITE.Launcher
         {
             if (_launcher == null || _path == null) return;
 
-            string selectedVersionName = "1.20.1-forge-47.2.0";
+            string versionId = "1.20.1-forge-47.2.0";
             string modsZipName = "mods-1.20.zip";
 
             BtnLaunch.IsEnabled = false;
-            TxtStatus.Text = $"  Verificando {selectedVersionName}...";
+            TxtStatus.Text = "  Verificando archivos de Minecraft...";
 
             try
             {
+                // 1. Comprobar e instalar Forge automáticamente si falta
+                var osVersions = await _launcher.GetAllVersionsAsync();
+                var targetVersion = osVersions.GetVersion(versionId);
+
+                if (targetVersion == null)
+                {
+                    TxtStatus.Text = "  Instalando Forge 1.20.1 (puede tardar un poco)...";
+                    
+                    var forge = new MForge(_launcher);
+                    // Instala la versión de Forge de forma nativa
+                    targetVersion = await forge.InstallAsync("1.20.1", "47.2.0");
+                }
+
+                // 2. Descargar mods y texture pack desde el Release de GitHub
                 TxtStatus.Text = "  Descargando mods y texture pack...";
                 await DownloadAndExtractModsAsync(modsZipName);
 
+                // 3. Iniciar el juego
                 TxtStatus.Text = "  Iniciando Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
 
-                var process = await _launcher.CreateProcessAsync(selectedVersionName, new MLaunchOption
+                var process = await _launcher.CreateProcessAsync(targetVersion, new MLaunchOption
                 {
                     Session = session,
                     MaximumRamMb = 3048
@@ -87,7 +103,6 @@ namespace ELITE.Launcher
 
             using var client = new HttpClient();
 
-            // 1. Descargar y descomprimir los mods
             try
             {
                 byte[] zipBytes = await client.GetByteArrayAsync(modsUrl);
@@ -104,7 +119,6 @@ namespace ELITE.Launcher
                 // Si falla, continúa el arranque
             }
 
-            // 2. Descargar el texture pack Pancho
             if (!File.Exists(panchoTexturePackPath))
             {
                 try
