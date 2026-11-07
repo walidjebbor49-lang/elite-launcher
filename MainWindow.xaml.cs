@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using System.IO.Compression; // Para descomprimir el archivo .zip
+using System.IO.Compression;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
@@ -34,7 +34,7 @@ namespace ELITE.Launcher
             if (_launcher == null || _path == null) return;
 
             string selectedVersionName = "1.21.1-forge-52.0.0";
-            string zipName = "mods-1.21.zip";
+            string modsZipName = "mods-1.21.zip";
 
             if (CbVersions.SelectedItem is ComboBoxItem selectedItem)
             {
@@ -42,12 +42,12 @@ namespace ELITE.Launcher
                 if (content != null && content.Contains("1.20.1"))
                 {
                     selectedVersionName = "1.20.1-forge-47.2.0";
-                    zipName = "mods-1.20.zip";
+                    modsZipName = "mods-1.20.zip";
                 }
                 else
                 {
                     selectedVersionName = "1.21.1-forge-52.0.0";
-                    zipName = "mods-1.21.zip";
+                    modsZipName = "mods-1.21.zip";
                 }
             }
 
@@ -56,8 +56,8 @@ namespace ELITE.Launcher
 
             try
             {
-                TxtStatus.Text = "  Descargando paquete de mods (.zip)...";
-                await DownloadAndExtractModsAsync(zipName);
+                TxtStatus.Text = "  Descargando mods y texture pack...";
+                await DownloadAndExtractModsAsync(modsZipName);
 
                 TxtStatus.Text = "  Iniciando Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
@@ -80,42 +80,60 @@ namespace ELITE.Launcher
             }
         }
 
-        private async Task DownloadAndExtractModsAsync(string zipName)
+        private async Task DownloadAndExtractModsAsync(string modsZipName)
         {
             if (_path == null) return;
 
+            // Carpetas de destino de Minecraft
             string modsDir = Path.Combine(_path.BasePath, "mods");
-            string tempZipPath = Path.Combine(_path.BasePath, zipName);
+            string resourcepacksDir = Path.Combine(_path.BasePath, "resourcepacks");
 
             Directory.CreateDirectory(modsDir);
+            Directory.CreateDirectory(resourcepacksDir);
 
-            // Enlace directo a tu Release en GitHub donde subas los .zip pesados
+            // Rutas temporales de descarga
+            string tempModsZip = Path.Combine(_path.BasePath, modsZipName);
+            string panchoTexturePackPath = Path.Combine(resourcepacksDir, "pancho.zip");
+
+            // Configuración de tu GitHub Release
             string githubUser = "walidjebbor49-lang";
             string repoName = "elite-launcher";
-            string releaseTag = "v1.0.0"; // Ajusta a la etiqueta de tu Release
-            
-            string zipUrl = $"https://github.com/{githubUser}/{repoName}/releases/download/{releaseTag}/{zipName}";
+            string releaseTag = "v1.0.0"; // Recuerda usar la misma etiqueta que pongas en GitHub Releases
+
+            string modsUrl = $"https://github.com/{githubUser}/{repoName}/releases/download/{releaseTag}/{modsZipName}";
+            string panchoUrl = $"https://github.com/{githubUser}/{repoName}/releases/download/{releaseTag}/pancho.zip";
 
             using var client = new HttpClient();
 
+            // 1. DESCARGA Y EXTRAE LOS MODS (.zip)
             try
             {
-                // 1. Descargar el archivo .zip de mods
-                byte[] zipBytes = await client.GetByteArrayAsync(zipUrl);
-                await File.WriteAllBytesAsync(tempZipPath, zipBytes);
+                byte[] zipBytes = await client.GetByteArrayAsync(modsUrl);
+                await File.WriteAllBytesAsync(tempModsZip, zipBytes);
+                ZipFile.ExtractToDirectory(tempModsZip, modsDir, overwriteFiles: true);
 
-                // 2. Descomprimir el contenido en la carpeta %appdata%/.minecraft/mods
-                ZipFile.ExtractToDirectory(tempZipPath, modsDir, overwriteFiles: true);
-
-                // 3. Borrar el archivo .zip temporal para mantener limpia la carpeta
-                if (File.Exists(tempZipPath))
+                if (File.Exists(tempModsZip))
                 {
-                    File.Delete(tempZipPath);
+                    File.Delete(tempModsZip);
                 }
             }
             catch
             {
-                // Si ya existen o no hay conexión, continúa el arranque
+                // Si falla o no hay internet, continúa el flujo
+            }
+
+            // 2. DESCARGA EL TEXTURE PACK PANCHO (.zip)
+            if (!File.Exists(panchoTexturePackPath))
+            {
+                try
+                {
+                    byte[] panchoBytes = await client.GetByteArrayAsync(panchoUrl);
+                    await File.WriteAllBytesAsync(panchoTexturePackPath, panchoBytes);
+                }
+                catch
+                {
+                    // Si aún no has subido el texture pack, el juego arranca sin interrumpirse
+                }
             }
         }
 
