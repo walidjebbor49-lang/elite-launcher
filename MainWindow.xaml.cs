@@ -18,7 +18,7 @@ namespace ELITE.Launcher
         private bool _isSpanish = true;
 
         // IP fija del servidor para el evento
-        const string EventServerIp = "pristine-bridge.play.hosting";
+        private const string EventServerIp = "pristine-bridge.play.hosting";
 
         public MainWindow()
         {
@@ -42,51 +42,32 @@ namespace ELITE.Launcher
             if (_launcher == null || _customPath == null) return;
 
             BtnLaunch.IsEnabled = false;
-            TxtStatus.Text = _isSpanish ? "  Verificando archivos del evento..." : "  Checking event files...";
+            TxtStatus.Text = _isSpanish ? "  Verificando archivos..." : "  Checking files...";
 
             try
             {
-                // 1. Descarga y descomprime la instancia
+                // 1. Descargar y extraer el modpack
                 TxtStatus.Text = _isSpanish ? "  Descargando instancia..." : "  Downloading instance...";
                 await DownloadAndExtractInstanceAsync();
 
-                // 2. Búsqueda inteligente de la versión instalada en la carpeta (evita el error de nombre)
-                TxtStatus.Text = _isSpanish ? "  Buscando versión de Forge..." : "  Looking for Forge version...";
-                
-                // Buscamos dentro de la carpeta versions de ELITE-Event o subcarpetas
-                string targetVersionName = "1.20.1-forge-47.2.0"; // Nombre por defecto
+                // 2. Mover automáticamente todo lo que haya dentro de carpetas intermedias (forge-1-20-1 o forge-1.20.1) a la raíz de ELITE-Event
+                TxtStatus.Text = _isSpanish ? "  Organizando carpetas del juego..." : "  Organizing game files...";
+                OrganizeExtractedInstance(_customPath.BasePath);
+
+                // 3. Buscar el nombre exacto de la versión dentro de ELITE-Event/versions
+                string targetVersionName = "1.20.1-forge-47.2.0";
                 string versionsDir = Path.Combine(_customPath.BasePath, "versions");
-                
+
                 if (Directory.Exists(versionsDir))
                 {
-                    var versionFolders = Directory.GetDirectories(versionsDir);
-                    if (versionFolders.Length > 0)
+                    var versionDirs = Directory.GetDirectories(versionsDir);
+                    if (versionDirs.Length > 0)
                     {
-                        targetVersionName = Path.GetFileName(versionFolders[0]);
-                    }
-                }
-                else
-                {
-                    // Si el zip se extrajo dentro de una subcarpeta como 'forge-1-20-1', movemos los archivos a la raíz
-                    string subFolder = Path.Combine(_customPath.BasePath, "forge-1-20-1");
-                    if (Directory.Exists(subFolder))
-                    {
-                        MoveDirectoryContents(subFolder, _customPath.BasePath);
-                        Directory.Delete(subFolder, true);
-                        
-                        versionsDir = Path.Combine(_customPath.BasePath, "versions");
-                        if (Directory.Exists(versionsDir))
-                        {
-                            var versionFolders = Directory.GetDirectories(versionsDir);
-                            if (versionFolders.Length > 0)
-                            {
-                                targetVersionName = Path.GetFileName(versionFolders[0]);
-                            }
-                        }
+                        targetVersionName = Path.GetFileName(versionDirs[0]);
                     }
                 }
 
-                // 3. Iniciar Minecraft con la versión detectada y la IP del evento
+                // 4. Iniciar Minecraft con la versión y la IP fija
                 TxtStatus.Text = _isSpanish ? "  Iniciando Minecraft..." : "  Starting Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
 
@@ -94,7 +75,7 @@ namespace ELITE.Launcher
                 {
                     Session = session,
                     MaximumRamMb = 3048,
-                    ServerIp = EventServerIp // Conecta automáticamente al servidor del evento
+                    ServerIp = EventServerIp
                 };
 
                 var process = await _launcher.CreateProcessAsync(targetVersionName, launchOptions);
@@ -119,8 +100,8 @@ namespace ELITE.Launcher
 
             string githubUser = "walidjebbor49-lang";
             string repoName = "elite-launcher";
-            string releaseTag = "v1.0.1"; 
-            string zipFileName = "modpack.zip"; 
+            string releaseTag = "v1.0.1";
+            string zipFileName = "modpack.zip";
 
             string downloadUrl = $"https://github.com/{githubUser}/{repoName}/releases/download/{releaseTag}/{zipFileName}";
 
@@ -144,16 +125,41 @@ namespace ELITE.Launcher
             }
         }
 
-        private void MoveDirectoryContents(string sourceDir, string targetDir)
+        private void OrganizeExtractedInstance(string rootPath)
         {
-            foreach (string dirPath in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            // Busca si existe alguna subcarpeta que empiece por "forge" dentro de ELITE-Event
+            var subDirs = Directory.GetDirectories(rootPath);
+            foreach (var dir in subDirs)
             {
-                Directory.CreateDirectory(dirPath.Replace(sourceDir, targetDir));
-            }
+                string dirName = Path.GetFileName(dir).ToLower();
+                if (dirName.StartsWith("forge"))
+                {
+                    // Mueve todas las subcarpetas (mods, config, versions, etc.) a la raíz de ELITE-Event
+                    foreach (var subDir in Directory.GetDirectories(dir))
+                    {
+                        string destDir = Path.Combine(rootPath, Path.GetFileName(subDir));
+                        if (Directory.Exists(destDir))
+                        {
+                            Directory.Delete(destDir, true);
+                        }
+                        Directory.Move(subDir, destDir);
+                    }
 
-            foreach (string newPath in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
-            {
-                File.Copy(newPath, newPath.Replace(sourceDir, targetDir), true);
+                    // Mueve todos los archivos (options.txt, etc.) a la raíz de ELITE-Event
+                    foreach (var file in Directory.GetFiles(dir))
+                    {
+                        string destFile = Path.Combine(rootPath, Path.GetFileName(file));
+                        if (File.Exists(destFile))
+                        {
+                            File.Delete(destFile);
+                        }
+                        File.Move(file, destFile);
+                    }
+
+                    // Borra la carpeta intermedia vacía
+                    Directory.Delete(dir, true);
+                    break;
+                }
             }
         }
 
