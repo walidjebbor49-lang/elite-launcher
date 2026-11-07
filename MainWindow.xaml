@@ -11,7 +11,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        {/* Barra Lateral */}
+        <!-- Barra Lateral -->
         <Border Background="#161925" Grid.Column="0">
             <StackPanel Margin="20">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,30">
@@ -33,28 +33,31 @@
             </StackPanel>
         </Border>
 
-        {/* Panel Principal */}
+        <!-- Panel Principal -->
         <Grid Grid.Column="1" Margin="40">
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="BIENVENIDO A ELITE" Foreground="#6C5CE7" FontSize="12" FontWeight="Bold" Margin="0,0,0,5"/>
                 <TextBlock Text="Tu Minecraft. A tu manera." Foreground="White" FontSize="28" FontWeight="Bold" Margin="0,0,0,10"/>
-                <TextBlock Text="Forge 1.21.1 con optimización automática y gestión de mods." Foreground="#8B9BB4" FontSize="14" Margin="0,0,0,30"/>
+                <TextBlock Text="Selecciona tu versión de Forge preferida y entra al servidor." Foreground="#8B9BB4" FontSize="14" Margin="0,0,0,30"/>
 
                 <Border Background="#161925" CornerRadius="12" Padding="30" Margin="0,0,0,20">
-                    <Grid>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Minecraft Forge 1.21.1" Foreground="White" FontSize="20" FontWeight="Bold" Margin="0,0,0,5"/>
-                            <TextBlock Text="Versión oficial configurada para el servidor." Foreground="#8B9BB4" FontSize="12" Margin="0,0,0,20"/>
+                    <StackPanel>
+                        <TextBlock Text="Selecciona la Versión de Forge" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                        
+                        <!-- Selector de versión -->
+                        <ComboBox x:Name="CbVersions" Height="35" Width="260" HorizontalAlignment="Left" Background="#222639" Foreground="White" FontSize="14" Margin="0,0,0,20" SelectedIndex="1">
+                            <ComboBoxItem Content="Forge 1.20.1"/>
+                            <ComboBoxItem Content="Forge 1.21.1"/>
+                        </ComboBox>
                             
-                            <Button x:Name="BtnLaunch" Content="JUGAR ►" Click="BtnLaunch_Click" Width="160" Height="45" Background="#6C5CE7" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Left">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="8"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
+                        <Button x:Name="BtnLaunch" Content="JUGAR ►" Click="BtnLaunch_Click" Width="160" Height="45" Background="#6C5CE7" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Left">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
                 </Border>
 
                 <TextBlock x:Name="TxtStatus" Text="  Sistema listo" Foreground="#00B894" FontSize="12" FontWeight="Bold"/>
