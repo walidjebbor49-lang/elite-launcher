@@ -8,7 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using CmlLib.Core;
 using CmlLib.Core.Auth;
-using CmlLib.Core.Installer.Forge; // Necesario para instalar Forge automáticamente
+using CmlLib.Core.Installer.Forge;
 
 namespace ELITE.Launcher
 {
@@ -16,7 +16,11 @@ namespace ELITE.Launcher
     {
         private CMLauncher? _launcher;
         private MinecraftPath? _path;
+        private bool _isSpanish = true;
         private bool _isDarkMode = true;
+
+        // IP fija de tu servidor para el evento
+        private const string EventServerIp = "pristine-bridge.play.hosting";
 
         public MainWindow()
         {
@@ -38,46 +42,44 @@ namespace ELITE.Launcher
             string modsZipName = "mods-1.20.zip";
 
             BtnLaunch.IsEnabled = false;
-            TxtStatus.Text = "  Verificando archivos de Minecraft...";
+            TxtStatus.Text = _isSpanish ? "  Verificando archivos de Minecraft..." : "  Checking Minecraft files...";
 
             try
             {
-                // 1. Comprobar e instalar Forge automáticamente si falta
                 var osVersions = await _launcher.GetAllVersionsAsync();
                 var targetVersion = osVersions.GetVersion(versionId);
 
                 if (targetVersion == null)
                 {
-                    TxtStatus.Text = "  Instalando Forge 1.20.1 (puede tardar un poco)...";
-                    
+                    TxtStatus.Text = _isSpanish ? "  Instalando Forge 1.20.1..." : "  Installing Forge 1.20.1...";
                     var forge = new MForge(_launcher);
-                    // Instala la versión de Forge de forma nativa
                     targetVersion = await forge.InstallAsync("1.20.1", "47.2.0");
                 }
 
-                // 2. Descargar mods y texture pack desde el Release de GitHub
-                TxtStatus.Text = "  Descargando mods y texture pack...";
+                TxtStatus.Text = _isSpanish ? "  Descargando mods y texture pack..." : "  Downloading mods and texture pack...";
                 await DownloadAndExtractModsAsync(modsZipName);
 
-                // 3. Iniciar el juego
-                TxtStatus.Text = "  Iniciando Minecraft...";
+                TxtStatus.Text = _isSpanish ? "  Iniciando Minecraft..." : "  Starting Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
 
-                var process = await _launcher.CreateProcessAsync(targetVersion, new MLaunchOption
+                var launchOptions = new MLaunchOption
                 {
                     Session = session,
-                    MaximumRamMb = 3048
-                });
+                    MaximumRamMb = 3048,
+                    ServerIp = EventServerIp // Conecta automáticamente a la IP del evento
+                };
+
+                var process = await _launcher.CreateProcessAsync(targetVersion, launchOptions);
 
                 process.Start();
-                TxtStatus.Text = "  ¡Juego iniciado!";
+                TxtStatus.Text = _isSpanish ? "  ¡Juego iniciado!" : "  Game started!";
                 this.Hide();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al iniciar el juego: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 BtnLaunch.IsEnabled = true;
-                TxtStatus.Text = "  Error al iniciar";
+                TxtStatus.Text = _isSpanish ? "  Error al iniciar" : "  Launch error";
             }
         }
 
@@ -109,15 +111,9 @@ namespace ELITE.Launcher
                 await File.WriteAllBytesAsync(tempModsZip, zipBytes);
                 ZipFile.ExtractToDirectory(tempModsZip, modsDir, overwriteFiles: true);
 
-                if (File.Exists(tempModsZip))
-                {
-                    File.Delete(tempModsZip);
-                }
+                if (File.Exists(tempModsZip)) File.Delete(tempModsZip);
             }
-            catch
-            {
-                // Si falla, continúa el arranque
-            }
+            catch { }
 
             if (!File.Exists(panchoTexturePackPath))
             {
@@ -126,14 +122,24 @@ namespace ELITE.Launcher
                     byte[] panchoBytes = await client.GetByteArrayAsync(panchoUrl);
                     await File.WriteAllBytesAsync(panchoTexturePackPath, panchoBytes);
                 }
-                catch
-                {
-                    // Continúa si hay algún fallo temporal
-                }
+                catch { }
             }
         }
 
-        private void NavHome_Click(object sender, RoutedEventArgs e) { }
+        // Navegación entre pestañas
+        private void NavHome_Click(object sender, RoutedEventArgs e)
+        {
+            ViewHome.Visibility = Visibility.Visible;
+            ViewSettings.Visibility = Visibility.Collapsed;
+            HighlightNavButton(BtnNavHome);
+        }
+
+        private void Settings_Click(object sender, RoutedEventArgs e)
+        {
+            ViewHome.Visibility = Visibility.Collapsed;
+            ViewSettings.Visibility = Visibility.Visible;
+            HighlightNavButton(BtnNavSettings);
+        }
 
         private void Optimization_Click(object sender, RoutedEventArgs e)
         {
@@ -143,7 +149,7 @@ namespace ELITE.Launcher
                 string optionsFile = Path.Combine(_path.BasePath, "options.txt");
                 string optimizedConfig = "graphicsMode:fabulous\nrenderDistance:8\nmaxFps:140\nviewDistance:8\nclouds:false\nsmoothLighting:0\n";
                 File.WriteAllText(optionsFile, optimizedConfig);
-                MessageBox.Show("¡Optimización aplicada con éxito!", "ELITE", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(_isSpanish ? "¡Optimización aplicada con éxito!" : "Optimization successfully applied!", "ELITE", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex) { MessageBox.Show($"Error: {ex.Message}"); }
         }
@@ -160,19 +166,95 @@ namespace ELITE.Launcher
             catch (Exception ex) { MessageBox.Show($"Error: {ex.Message}"); }
         }
 
-        private void Settings_Click(object sender, RoutedEventArgs e)
+        private void HighlightNavButton(Button activeBtn)
         {
-            _isDarkMode = !_isDarkMode;
-            if (_isDarkMode)
+            BtnNavHome.Background = Brushes.Transparent;
+            BtnNavHome.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B9BB4"));
+            BtnNavOpt.Background = Brushes.Transparent;
+            BtnNavOpt.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B9BB4"));
+            BtnNavMods.Background = Brushes.Transparent;
+            BtnNavMods.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B9BB4"));
+            BtnNavSettings.Background = Brushes.Transparent;
+            BtnNavSettings.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B9BB4"));
+
+            activeBtn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#222639"));
+            activeBtn.Foreground = Brushes.White;
+        }
+
+        // Cambio de Tema Oscuro / Claro
+        private void CbTheme_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CbTheme.SelectedItem is ComboBoxItem item)
             {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F111A"));
-                MessageBox.Show("Modo Oscuro activado.", "Ajustes", MessageBoxButton.OK, MessageBoxImage.Information);
+                string? text = item.Content.ToString();
+                if (text != null && text.Contains("Claro"))
+                {
+                    _isDarkMode = false;
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F5F6FA"));
+                }
+                else
+                {
+                    _isDarkMode = true;
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F111A"));
+                }
             }
-            else
+        }
+
+        // Cambio de Idioma (Español / Inglés)
+        private void CbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CbLanguage.SelectedItem is ComboBoxItem item)
             {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F5F6FA"));
-                MessageBox.Show("Modo Claro activado.", "Ajustes", MessageBoxButton.OK, MessageBoxImage.Information);
+                string? text = item.Content.ToString();
+                if (text != null && text.Contains("English"))
+                {
+                    _isSpanish = false;
+                    SetLanguageEnglish();
+                }
+                else
+                {
+                    _isSpanish = true;
+                    SetLanguageSpanish();
+                }
             }
+        }
+
+        private void SetLanguageSpanish()
+        {
+            LblMenuHeader.Text = "MENÚ PRINCIPAL";
+            BtnNavHome.Content = "  Inicio";
+            BtnNavOpt.Content = "  Optimización";
+            BtnNavMods.Content = "  Mods";
+            BtnNavSettings.Content = "  Ajustes";
+            LblWelcomeTag.Text = "BIENVENIDO A ELITE";
+            LblWelcomeMain.Text = "Tu Minecraft. A tu manera.";
+            LblWelcomeDesc.Text = "Selecciona tu versión de Forge preferida y entra al servidor.";
+            LblSelectVersion.Text = "Selecciona la Versión de Forge";
+            BtnLaunch.Content = "JUGAR ►";
+            TxtStatus.Text = "  Sistema listo";
+            LblSettingsTitle.Text = "CONFIGURACIÓN";
+            LblSettingsHeader.Text = "Ajustes del Launcher";
+            LblThemeLabel.Text = "Tema Visual";
+            LblLangLabel.Text = "Idioma / Language";
+        }
+
+        private void SetLanguageEnglish()
+        {
+            LblMenuHeader.Text = "MAIN MENU";
+            BtnNavHome.Content = "  Home";
+            BtnNavOpt.Content = "  Optimization";
+            BtnNavMods.Content = "  Mods";
+            BtnNavSettings.Content = "  Settings";
+            LblWelcomeTag.Text = "WELCOME TO ELITE";
+            LblWelcomeMain.Text = "Your Minecraft. Your way.";
+            LblWelcomeDesc.Text = "Select your preferred Forge version and join the server.";
+            LblSelectVersion.Text = "Select Forge Version";
+            BtnLaunch.Content = "PLAY ►";
+            TxtStatus.Text = "  System ready";
+            LblSettingsTitle.Text = "SETTINGS";
+            LblSettingsHeader.Text = "Launcher Settings";
+            LblThemeLabel.Text = "Visual Theme";
+            LblLangLabel.Text = "Language / Idioma";
         }
     }
 }
