@@ -41,30 +41,27 @@ namespace ELITE.Launcher
             string modsZipName = "mods-1.20.zip";
 
             BtnLaunch.IsEnabled = false;
-            TxtStatus.Text = _isSpanish ? "  Buscando versión de Forge..." : "  Looking for Forge version...";
+            TxtStatus.Text = _isSpanish ? "  Verificando entorno..." : "  Checking environment...";
 
             try
             {
-                // 1. Descargar mods y texturas primero
+                // 1. Descarga mods y texturas primero
                 TxtStatus.Text = _isSpanish ? "  Descargando mods y texture pack..." : "  Downloading mods and texture pack...";
                 await DownloadAndExtractModsAsync(modsZipName);
 
-                // 2. Búsqueda inteligente de la versión (como SKLauncher)
+                // 2. Comprobación segura de versiones locales disponibles
                 TxtStatus.Text = _isSpanish ? "  Verificando perfil de juego..." : "  Verifying game profile...";
-                var versions = await _launcher.GetVersionsAsync();
-                MServicNet.MVersion? chosenVersion = null;
+                var versions = _launcher.GetVersions();
+                string finalVersionToRun = targetVersionName;
 
                 foreach (var v in versions)
                 {
                     if (v.Name.Contains("1.20.1") && v.Name.Contains("forge"))
                     {
-                        chosenVersion = v;
+                        finalVersionToRun = v.Name;
                         break;
                     }
                 }
-
-                // Si no encuentra el Forge exacto en la lista local, usa el nombre por defecto para forzar el arranque
-                string finalVersionToRun = chosenVersion != null ? chosenVersion.Name : targetVersionName;
 
                 TxtStatus.Text = _isSpanish ? "  Iniciando Minecraft..." : "  Starting Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
