@@ -1,0 +1,43 @@
+name: Build ELITE for Windows x64
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish self-contained single-file app
+        shell: pwsh
+        run: ./publish.ps1
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: '& "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" installer/ELITE.iss'
+
+      - name: Upload ELITE executable and installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ELITE-Windows-x64
+          path: |
+            publish/win-x64/ELITE.exe
+            installer-output/ELITE-Setup-x64.exe
+          if-no-files-found: error
+          retention-days: 30
