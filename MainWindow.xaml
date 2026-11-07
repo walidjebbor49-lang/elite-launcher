@@ -19,32 +19,33 @@
                         <TextBlock Text="E" Foreground="White" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="ELITE" Foreground="White" FontWeight="Bold" FontSize="16"/>
-                        <TextBlock Text="MINECRAFT LAUNCHER" Foreground="#8B9BB4" FontSize="9"/>
+                        <TextBlock x:Name="LblBrandTitle" Text="ELITE" Foreground="White" FontWeight="Bold" FontSize="16"/>
+                        <TextBlock x:Name="LblBrandSub" Text="MINECRAFT LAUNCHER" Foreground="#8B9BB4" FontSize="9"/>
                     </StackPanel>
                 </StackPanel>
 
-                <TextBlock Text="MENÚ PRINCIPAL" Foreground="#4A5568" FontSize="10" FontWeight="Bold" Margin="0,0,0,10"/>
+                <TextBlock x:Name="LblMenuHeader" Text="MENÚ PRINCIPAL" Foreground="#4A5568" FontSize="10" FontWeight="Bold" Margin="0,0,0,10"/>
                 
-                <Button Content="  Inicio" Click="NavHome_Click" Background="#222639" Foreground="White" HorizontalContentAlignment="Left" Padding="12" BorderThickness="0" Margin="0,0,0,5" Cursor="Hand"/>
-                <Button Content="  Optimización" Click="Optimization_Click" Background="Transparent" Foreground="#8B9BB4" HorizontalContentAlignment="Left" Padding="12" BorderThickness="0" Margin="0,0,0,5" Cursor="Hand"/>
-                <Button Content="  Mods" Click="Mods_Click" Background="Transparent" Foreground="#8B9BB4" HorizontalContentAlignment="Left" Padding="12" BorderThickness="0" Margin="0,0,0,5" Cursor="Hand"/>
-                <Button Content="  Ajustes" Click="Settings_Click" Background="Transparent" Foreground="#8B9BB4" HorizontalContentAlignment="Left" Padding="12" BorderThickness="0" Margin="0,0,0,5" Cursor="Hand"/>
+                <Button x:Name="BtnNavHome" Content="  Inicio" Click="NavHome_Click" Background="#222639" Foreground="White" HorizontalContentAlignment="Left" Padding="12" BorderThickness="0" Margin="0,0,0,5" Cursor="Hand"/>
+                <Button x:Name="BtnNavOpt" Content="  Optimización" Click="Optimization_Click" Background="Transparent" Foreground="#8B9BB4" HorizontalContentAlignment="Left" Padding="12" BorderThickness="0" Margin="0,0,0,5" Cursor="Hand"/>
+                <Button x:Name="BtnNavMods" Content="  Mods" Click="Mods_Click" Background="Transparent" Foreground="#8B9BB4" HorizontalContentAlignment="Left" Padding="12" BorderThickness="0" Margin="0,0,0,5" Cursor="Hand"/>
+                <Button x:Name="BtnNavSettings" Content="  Ajustes" Click="Settings_Click" Background="Transparent" Foreground="#8B9BB4" HorizontalContentAlignment="Left" Padding="12" BorderThickness="0" Margin="0,0,0,5" Cursor="Hand"/>
             </StackPanel>
         </Border>
 
-        <!-- Panel Principal -->
+        <!-- Contenedor Principal de Vistas -->
         <Grid Grid.Column="1" Margin="40">
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="BIENVENIDO A ELITE" Foreground="#6C5CE7" FontSize="12" FontWeight="Bold" Margin="0,0,0,5"/>
-                <TextBlock Text="Tu Minecraft. A tu manera." Foreground="White" FontSize="28" FontWeight="Bold" Margin="0,0,0,10"/>
-                <TextBlock Text="Selecciona tu versión de Forge preferida y entra al servidor." Foreground="#8B9BB4" FontSize="14" Margin="0,0,0,30"/>
+            
+            <!-- VISTA 1: INICIO (Juego y Versión) -->
+            <StackPanel x:Name="ViewHome" VerticalAlignment="Center" Visibility="Visible">
+                <TextBlock x:Name="LblWelcomeTag" Text="BIENVENIDO A ELITE" Foreground="#6C5CE7" FontSize="12" FontWeight="Bold" Margin="0,0,0,5"/>
+                <TextBlock x:Name="LblWelcomeMain" Text="Tu Minecraft. A tu manera." Foreground="White" FontSize="28" FontWeight="Bold" Margin="0,0,0,10"/>
+                <TextBlock x:Name="LblWelcomeDesc" Text="Selecciona tu versión de Forge preferida y entra al servidor." Foreground="#8B9BB4" FontSize="14" Margin="0,0,0,30"/>
 
                 <Border Background="#161925" CornerRadius="12" Padding="30" Margin="0,0,0,20">
                     <StackPanel>
-                        <TextBlock Text="Selecciona la Versión de Forge" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <TextBlock x:Name="LblSelectVersion" Text="Selecciona la Versión de Forge" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
                         
-                        <!-- Selector de versión con colores fijos para evitar que no se lea -->
                         <ComboBox x:Name="CbVersions" Height="35" Width="260" HorizontalAlignment="Left" Background="#222639" Foreground="White" FontSize="14" Margin="0,0,0,20" SelectedIndex="0">
                             <ComboBoxItem Content="Forge 1.20.1" Foreground="Black"/>
                         </ComboBox>
@@ -61,6 +62,31 @@
 
                 <TextBlock x:Name="TxtStatus" Text="  Sistema listo" Foreground="#00B894" FontSize="12" FontWeight="Bold"/>
             </StackPanel>
+
+            <!-- VISTA 2: AJUSTES (Tema e Idioma) -->
+            <StackPanel x:Name="ViewSettings" VerticalAlignment="Center" Visibility="Collapsed">
+                <TextBlock x:Name="LblSettingsTitle" Text="CONFIGURACIÓN" Foreground="#6C5CE7" FontSize="12" FontWeight="Bold" Margin="0,0,0,5"/>
+                <TextBlock x:Name="LblSettingsHeader" Text="Ajustes del Launcher" Foreground="White" FontSize="28" FontWeight="Bold" Margin="0,0,0,30"/>
+
+                <Border Background="#161925" CornerRadius="12" Padding="30" Margin="0,0,0,20">
+                    <StackPanel>
+                        <!-- Selector de Tema -->
+                        <TextBlock x:Name="LblThemeLabel" Text="Tema Visual" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <ComboBox x:Name="CbTheme" Height="35" Width="260" HorizontalAlignment="Left" Background="#222639" Foreground="White" FontSize="14" Margin="0,0,0,20" SelectionChanged="CbTheme_SelectionChanged">
+                            <ComboBoxItem Content="Oscuro (Dark)" Foreground="Black" IsSelected="True"/>
+                            <ComboBoxItem Content="Claro (Light)" Foreground="Black"/>
+                        </ComboBox>
+
+                        <!-- Selector de Idioma -->
+                        <TextBlock x:Name="LblLangLabel" Text="Idioma / Language" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <ComboBox x:Name="CbLanguage" Height="35" Width="260" HorizontalAlignment="Left" Background="#222639" Foreground="White" FontSize="14" Margin="0,0,0,10" SelectionChanged="CbLanguage_SelectionChanged">
+                            <ComboBoxItem Content="Español" Foreground="Black" IsSelected="True"/>
+                            <ComboBoxItem Content="English" Foreground="Black"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
         </Grid>
     </Grid>
 </Window>
