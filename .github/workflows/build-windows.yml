@@ -30,7 +30,7 @@ jobs:
 
       - name: Build installer
         shell: pwsh
-        run: '& "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" installer/ELITE.iss'
+        run: iscc installer/ELITE.iss
 
       - name: Upload ELITE executable and installer
         uses: actions/upload-artifact@v4
