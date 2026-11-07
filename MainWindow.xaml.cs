@@ -16,7 +16,6 @@ namespace ELITE.Launcher
         private CMLauncher? _launcher;
         private MinecraftPath? _path;
         private bool _isSpanish = true;
-        private bool _isDarkMode = true;
 
         // IP fija del servidor para el evento
         private const string EventServerIp = "pristine-bridge.play.hosting";
@@ -41,7 +40,7 @@ namespace ELITE.Launcher
             string modsZipName = "mods-1.20.zip";
 
             BtnLaunch.IsEnabled = false;
-            TxtStatus.Text = _isSpanish ? "  Verificando entorno..." : "  Checking environment...";
+            TxtStatus.Text = _isSpanish ? "  Preparando lanzamiento..." : "  Preparing launch...";
 
             try
             {
@@ -49,21 +48,7 @@ namespace ELITE.Launcher
                 TxtStatus.Text = _isSpanish ? "  Descargando mods y texture pack..." : "  Downloading mods and texture pack...";
                 await DownloadAndExtractModsAsync(modsZipName);
 
-                // 2. Comprobación segura de versiones locales disponibles
-                TxtStatus.Text = _isSpanish ? "  Verificando perfil de juego..." : "  Verifying game profile...";
-                var versions = _launcher.GetVersions();
-                string finalVersionToRun = targetVersionName;
-
-                foreach (var v in versions)
-                {
-                    string versionName = v.ToString() ?? "";
-                    if (versionName.Contains("1.20.1") && versionName.Contains("forge"))
-                    {
-                        finalVersionToRun = versionName;
-                        break;
-                    }
-                }
-
+                // 2. Iniciar el juego directamente con la versión de Forge
                 TxtStatus.Text = _isSpanish ? "  Iniciando Minecraft..." : "  Starting Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
 
@@ -74,7 +59,7 @@ namespace ELITE.Launcher
                     ServerIp = EventServerIp // Conecta automáticamente al servidor del evento
                 };
 
-                var process = await _launcher.CreateProcessAsync(finalVersionToRun, launchOptions);
+                var process = await _launcher.CreateProcessAsync(targetVersionName, launchOptions);
 
                 process.Start();
                 TxtStatus.Text = _isSpanish ? "  ¡Juego iniciado!" : "  Game started!";
@@ -194,12 +179,10 @@ namespace ELITE.Launcher
                 string? text = item.Content.ToString();
                 if (text != null && text.Contains("Claro"))
                 {
-                    _isDarkMode = false;
                     Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F5F6FA"));
                 }
                 else
                 {
-                    _isDarkMode = true;
                     Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F111A"));
                 }
             }
