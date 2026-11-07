@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression; // Para descomprimir el archivo .zip
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
@@ -32,22 +33,21 @@ namespace ELITE.Launcher
         {
             if (_launcher == null || _path == null) return;
 
-            // Identificar qué versión eligió el usuario en el ComboBox
-            string selectedVersionName = "1.21.1-forge-52.0.0"; // Por defecto
-            string githubFolderMods = "mods-1.21";
+            string selectedVersionName = "1.21.1-forge-52.0.0";
+            string zipName = "mods-1.21.zip";
 
             if (CbVersions.SelectedItem is ComboBoxItem selectedItem)
             {
                 string? content = selectedItem.Content.ToString();
                 if (content != null && content.Contains("1.20.1"))
                 {
-                    selectedVersionName = "1.20.1-forge-47.2.0"; // Ajusta el ID de Forge 1.20.1 si lo necesitas
-                    githubFolderMods = "mods-1.20";
+                    selectedVersionName = "1.20.1-forge-47.2.0";
+                    zipName = "mods-1.20.zip";
                 }
                 else
                 {
                     selectedVersionName = "1.21.1-forge-52.0.0";
-                    githubFolderMods = "mods-1.21";
+                    zipName = "mods-1.21.zip";
                 }
             }
 
@@ -56,9 +56,8 @@ namespace ELITE.Launcher
 
             try
             {
-                // Descargar los mods específicos de esa versión desde GitHub
-                TxtStatus.Text = "  Descargando mods y recursos...";
-                await DownloadRequiredModsAsync(githubFolderMods);
+                TxtStatus.Text = "  Descargando paquete de mods (.zip)...";
+                await DownloadAndExtractModsAsync(zipName);
 
                 TxtStatus.Text = "  Iniciando Minecraft...";
                 var session = MSession.GetOfflineSession("ElitePlayer");
@@ -81,43 +80,42 @@ namespace ELITE.Launcher
             }
         }
 
-        private async Task DownloadRequiredModsAsync(string modFolderRepo)
+        private async Task DownloadAndExtractModsAsync(string zipName)
         {
             if (_path == null) return;
 
             string modsDir = Path.Combine(_path.BasePath, "mods");
-            string resourcepacksDir = Path.Combine(_path.BasePath, "resourcepacks");
+            string tempZipPath = Path.Combine(_path.BasePath, zipName);
 
             Directory.CreateDirectory(modsDir);
-            Directory.CreateDirectory(resourcepacksDir);
 
+            // Enlace directo a tu Release en GitHub donde subas los .zip pesados
             string githubUser = "walidjebbor49-lang";
             string repoName = "elite-launcher";
-            string branch = "main";
-
-            // Puedes organizar tus carpetas en GitHub como 'mods-1.20', 'mods-1.21' y 'pancho' para los texture packs
-            var filesToDownload = new Dictionary<string, string>
-            {
-                { Path.Combine(modsDir, "mod-servidor.jar"), $"https://raw.githubusercontent.com/{githubUser}/{repoName}/{branch}/{modFolderRepo}/mod-servidor.jar" },
-                { Path.Combine(resourcepacksDir, "pancho-pack.zip"), $"https://raw.githubusercontent.com/{githubUser}/{repoName}/{branch}/pancho/pancho-pack.zip" }
-            };
+            string releaseTag = "v1.0.0"; // Ajusta a la etiqueta de tu Release
+            
+            string zipUrl = $"https://github.com/{githubUser}/{repoName}/releases/download/{releaseTag}/{zipName}";
 
             using var client = new HttpClient();
 
-            foreach (var file in filesToDownload)
+            try
             {
-                if (!File.Exists(file.Key))
+                // 1. Descargar el archivo .zip de mods
+                byte[] zipBytes = await client.GetByteArrayAsync(zipUrl);
+                await File.WriteAllBytesAsync(tempZipPath, zipBytes);
+
+                // 2. Descomprimir el contenido en la carpeta %appdata%/.minecraft/mods
+                ZipFile.ExtractToDirectory(tempZipPath, modsDir, overwriteFiles: true);
+
+                // 3. Borrar el archivo .zip temporal para mantener limpia la carpeta
+                if (File.Exists(tempZipPath))
                 {
-                    try
-                    {
-                        byte[] bytes = await client.GetByteArrayAsync(file.Value);
-                        await File.WriteAllBytesAsync(file.Key, bytes);
-                    }
-                    catch
-                    {
-                        // Si algún archivo aún no está subido, el juego sigue arrancando sin bloquearse
-                    }
+                    File.Delete(tempZipPath);
                 }
+            }
+            catch
+            {
+                // Si ya existen o no hay conexión, continúa el arranque
             }
         }
 
