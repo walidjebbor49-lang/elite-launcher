@@ -37,7 +37,8 @@ namespace ELITE.Launcher
 
         // Versión de Forge que se instala si el modpack no la trae (o la que diga su manifest.json).
         private const string McVersion = "1.20.1";
-        private const string DefaultForgeVersion = "47.2.0";
+        // Los mods del modpack piden Forge >= 47.4.15 (ruleta) y >= 47.3.0 (justzoom).
+        private const string DefaultForgeVersion = "47.4.16";
 
         private const string GitHubUser = "walidjebbor49-lang";
         private const string RepoName = "elite-launcher";
@@ -56,7 +57,7 @@ namespace ELITE.Launcher
 
         // URL de tu Worker de Cloudflare que guarda "nombre -> PC". Mira WORKER_registro.js.
         // Si la dejas vacía, no se comprueba nada (el launcher funciona como antes).
-        private const string RegistryUrl = "https://elite-registro.walidjebbor957.workers.dev";   // p. ej. "https://elite-registro.TU-USUARIO.workers.dev"
+        private const string RegistryUrl = "";   // p. ej. "https://elite-registro.TU-USUARIO.workers.dev"
 
         // SHA-256 de la contraseña de administrador (no se guarda en texto plano).
         private const string AdminPasswordHash =
@@ -896,7 +897,7 @@ namespace ELITE.Launcher
         private async Task<string> EnsureInstanceInstalledAsync(string root, Action<string> report)
         {
             string markerPath = GetMarkerPath(root);
-            string? installed = FindForgeVersion(root);
+            string? installed = FindForgeVersion(root, WantedForge(root));
 
             // Ya instalado y sin buscar actualizaciones: no se toca la red.
             if (installed != null && File.Exists(markerPath) && !_settings.CheckUpdates)
@@ -963,12 +964,12 @@ namespace ELITE.Launcher
                     File.WriteAllText(markerPath, length?.ToString() ?? "");
                 }
 
-                string? version = FindForgeVersion(root);
+                string? version = FindForgeVersion(root, WantedForge(root));
                 if (version == null)
                 {
                     // El zip no traía Forge: se instala con el instalador oficial.
                     await InstallForgeAsync(root, report);
-                    version = FindForgeVersion(root);
+                    version = FindForgeVersion(root, WantedForge(root));
                 }
 
                 if (version == null)
@@ -1212,8 +1213,13 @@ namespace ELITE.Launcher
             catch (Exception ex) { MessageBox.Show($"Error: {ex.Message}"); }
         }
 
-        // Devuelve el nombre de la versión de Forge dentro de <root>/versions, o null si no hay.
-        private static string? FindForgeVersion(string root)
+        // Versión de Forge que hay que usar: la del manifest del modpack o la de por defecto.
+        private static string WantedForge(string root) => DetectForgeVersion(root) ?? DefaultForgeVersion;
+
+        // Devuelve el nombre de la versión de Forge EXACTA (p. ej. 1.20.1-forge-47.4.16) dentro de
+        // <root>/versions, o null si no está. Así, una Forge antigua que ya estuviera instalada
+        // (47.2.0) no se usa por error cuando los mods piden una más nueva.
+        private static string? FindForgeVersion(string root, string wantedForge)
         {
             string versionsDir = Path.Combine(root, "versions");
             if (!Directory.Exists(versionsDir)) return null;
@@ -1222,6 +1228,7 @@ namespace ELITE.Launcher
             {
                 string name = Path.GetFileName(dir);
                 if (name.IndexOf("forge", StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (name.IndexOf(wantedForge, StringComparison.OrdinalIgnoreCase) < 0) continue;
 
                 // CmlLib exige versions/<nombre>/<nombre>.json. Si el json tiene otro nombre, se copia.
                 string json = Path.Combine(dir, name + ".json");
