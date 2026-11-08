@@ -56,7 +56,7 @@ namespace ELITE.Launcher
 
         // URL de tu Worker de Cloudflare que guarda "nombre -> PC". Mira WORKER_registro.js.
         // Si la dejas vacía, no se comprueba nada (el launcher funciona como antes).
-        private const string RegistryUrl = "";   // p. ej. "https://elite-registro.TU-USUARIO.workers.dev"
+        private const string RegistryUrl = "https://elite-registro.walidjebbor957.workers.dev";   // p. ej. "https://elite-registro.TU-USUARIO.workers.dev"
 
         // SHA-256 de la contraseña de administrador (no se guarda en texto plano).
         private const string AdminPasswordHash =
